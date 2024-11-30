@@ -4,7 +4,6 @@ from telegram.ext import Dispatcher, MessageHandler, Filters
 import openai
 import os
 
-# Flask app initialization
 app = Flask(__name__)
 
 # Load API keys from environment variables
@@ -15,46 +14,33 @@ openai.api_key = OPENAI_API_KEY
 # Initialize Telegram Bot
 bot = Bot(token=TELEGRAM_BOT_TOKEN)
 
-# ChatGPT session storage (to maintain context per user)
-user_sessions = {}
-
-def handle_message(update, context):
-    """Handles incoming messages from Telegram."""
-    chat_id = update.message.chat_id
-    user_message = update.message.text
-
-    # Initialize user session if not exists
-    if chat_id not in user_sessions:
-        user_sessions[chat_id] = []
-
-    # Append user message to session
-    user_sessions[chat_id].append({"role": "user", "content": user_message})
-
-    # Call OpenAI API
-    response = openai.ChatCompletion.create(
-        model="gpt-3.5-turbo",
-        messages=user_sessions[chat_id]
-    )
-
-    # Get the reply
-    bot_reply = response['choices'][0]['message']['content']
-
-    # Append bot reply to session
-    user_sessions[chat_id].append({"role": "assistant", "content": bot_reply})
-
-    # Send reply to user
-    bot.send_message(chat_id=chat_id, text=bot_reply)
-
-@app.route(f"/{TELEGRAM_BOT_TOKEN}", methods=["POST"])
+# Route to handle Telegram updates
+@app.route(f'/{TELEGRAM_BOT_TOKEN}', methods=['POST'])
 def webhook():
-    """Handles webhook requests from Telegram."""
-    update = Update.de_json(request.get_json(force=True), bot)
+    update = Update.de_json(request.get_json(), bot)
+    dispatcher = Dispatcher(bot, None, workers=0)
+    
+    # Define the message handler
+    def handle_message(update, context):
+        user_message = update.message.text
+        
+        # Send the message to OpenAI for a response
+        response = openai.Completion.create(
+            model="text-davinci-003",  # You can change the model if needed
+            prompt=user_message,
+            max_tokens=150
+        )
+        
+        # Send OpenAI response back to the user
+        update.message.reply_text(response.choices[0].text.strip())
+    
+    # Add message handler
+    dispatcher.add_handler(MessageHandler(Filters.text & ~Filters.command, handle_message))
+    
+    # Process the update
     dispatcher.process_update(update)
-    return "OK", 200
+    
+    return 'ok'
 
-# Setup Telegram dispatcher
-dispatcher = Dispatcher(bot, None)
-dispatcher.add_handler(MessageHandler(Filters.text & ~Filters.command, handle_message))
-
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
+if __name__ == '__main__':
+    app.run(debug=True)
