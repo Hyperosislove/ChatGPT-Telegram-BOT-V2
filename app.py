@@ -6,12 +6,12 @@ import os
 
 app = Flask(__name__)
 
-# Load API keys from environment variables
-TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+# Your Bot Token and OpenAI API Key (from environment variables or directly here)
+TELEGRAM_BOT_TOKEN = "8120601970:AAEmaeSnSEcXevCXQZZitp0Quyv7giXMR4k"
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")  # Or set your OpenAI key directly
 openai.api_key = OPENAI_API_KEY
 
-# Initialize Telegram Bot
+# Initialize the Telegram Bot
 bot = Bot(token=TELEGRAM_BOT_TOKEN)
 
 # Route to handle Telegram updates
