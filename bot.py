@@ -1,52 +1,30 @@
-import os
-import time
-from telegram import Update
-from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, filters, ContextTypes
-import openai
+const { Telegraf } = require('telegraf');
+const { Configuration, OpenAIApi } = require('openai');
 
-# Environment variables
-TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
+// Set up Telegraf Bot
+const bot = new Telegraf(process.env.TELEGRAM_BOT_TOKEN);
 
-if not TELEGRAM_BOT_TOKEN or not OPENAI_API_KEY:
-    raise ValueError("TELEGRAM_BOT_TOKEN and OPENAI_API_KEY must be set as environment variables.")
+// Set up OpenAI API client
+const openai = new OpenAIApi(new Configuration({
+  apiKey: process.env.OPENAI_API_KEY,
+}));
 
-openai.api_key = OPENAI_API_KEY
+// Start command
+bot.start((ctx) => ctx.reply('Hello! I am an AI-powered bot. Ask me anything!'));
 
-# Start Command
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("Assalam-o-Alaikum! Main aapka AI assistant hoon. Kuch puchhna ho to message karein.")
+// Handle messages
+bot.on('text', async (ctx) => {
+  const userMessage = ctx.message.text;
+  
+  const openaiResponse = await openai.createCompletion({
+    model: 'text-davinci-003',
+    prompt: userMessage,
+    max_tokens: 150,
+  });
+  
+  const aiResponse = openaiResponse.data.choices[0].text.trim();
+  ctx.reply(aiResponse);
+});
 
-# Message Handler
-async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    user_message = update.message.text
-    try:
-        # Generate response from OpenAI (using gpt-3.5-turbo or gpt-4)
-        response = openai.ChatCompletion.create(
-            model="gpt-3.5-turbo",  # or "gpt-4"
-            messages=[
-                {"role": "system", "content": "You are a helpful assistant."},
-                {"role": "user", "content": user_message}
-            ],
-            max_tokens=150,
-            temperature=0.7
-        )
-        reply = response['choices'][0]['message']['content'].strip()
-        await update.message.reply_text(reply)
-        time.sleep(1)  # Add delay to prevent flooding
-    except openai.error.AuthenticationError:
-        await update.message.reply_text("Error: Invalid OpenAI API Key.")
-    except openai.error.RateLimitError:
-        await update.message.reply_text("Error: Rate limit exceeded. Please try later.")
-    except Exception as e:
-        await update.message.reply_text(f"Unexpected Error: {str(e)}")
-
-# Main Application
-def main():
-    application = ApplicationBuilder().token(TELEGRAM_BOT_TOKEN).build()
-    application.add_handler(CommandHandler("start", start))
-    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
-    application.run_polling()
-
-if __name__ == "__main__":
-    main()
+// Start bot
+bot.launch();
