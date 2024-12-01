@@ -50,6 +50,57 @@ async def process_callback(callback_query):
     user_languages[callback_query.from_user.id] = callback_query.data
     await bot.answer_callback_query(callback_query.id)
 
+import logging
+import time
+from aiogram import Bot, Dispatcher
+from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, Message
+import openai
+from config import bot_token, api_key
+from message_templates import message_templates
+import asyncio
+
+logging.basicConfig(level=logging.INFO)
+
+bot = Bot(token=bot_token)
+dp = Dispatcher(bot)
+
+openai.api_key = api_key
+
+messages = {}
+user_languages = {}  # Keep track of user's current language
+
+
+@dp.callback_query(lambda c: c.data in ['en', 'ru', 'ua'])
+async def process_callback(callback_query):
+    user_languages[callback_query.from_user.id] = callback_query.data
+    await send_message(callback_query.from_user.id, 'language_confirmation')
+    await bot.answer_callback_query(callback_query.id)
+
+
+# Create language selection keyboard
+language_keyboard = InlineKeyboardMarkup(row_width=2)
+language_keyboard.add(InlineKeyboardButton("English🇬🇧", callback_data='en'),
+                      InlineKeyboardButton("Русский🇷🇺", callback_data='ru'),
+                      InlineKeyboardButton("Український🇺🇦", callback_data='ua'))
+
+
+async def send_message(user_id, message_key):
+    language = user_languages.get(user_id, 'en')  # Default to English
+    message_template = message_templates[language][message_key]
+    await bot.send_message(user_id, message_template)
+
+
+@dp.message(commands=['language'])
+async def language_cmd(message: Message):
+    await bot.send_message(message.chat.id, message_templates['en']['language_selection'],
+                           reply_markup=language_keyboard)
+
+
+@dp.callback_query(lambda c: c.data in ['en', 'ru'])
+async def process_callback(callback_query):
+    user_languages[callback_query.from_user.id] = callback_query.data
+    await bot.answer_callback_query(callback_query.id)
+
 
 async def generate_image(prompt):
     response = openai.Image.create(
@@ -160,5 +211,4 @@ async def echo_msg(message: Message):
 
 
 if __name__ == '__main__':
-    import asyncio
-    asyncio.run(dp.start_polling())
+    asyncio.run(dp.start_polling())  # Start the polling using asyncio.run()
