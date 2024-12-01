@@ -9,8 +9,11 @@ import asyncio
 
 logging.basicConfig(level=logging.INFO)
 
+# Initialize bot and dispatcher
 bot = Bot(token=bot_token)
-dp = Dispatcher(bot)
+dp = Dispatcher()
+
+dp.bot = bot  # Set the bot for the dispatcher
 
 openai.api_key = api_key
 
