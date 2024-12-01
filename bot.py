@@ -1,8 +1,10 @@
 import os
-from telegram.ext import Updater, CommandHandler, MessageHandler, Filters
+from telegram import Update
+from telegram.ext import Updater, CommandHandler, MessageHandler, filters, ApplicationBuilder, ContextTypes
+
 import openai
 
-# Load environment variables (Heroku Config Vars)
+# Load environment variables
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
 
@@ -13,12 +15,12 @@ if not TELEGRAM_BOT_TOKEN or not OPENAI_API_KEY:
 # Set OpenAI API key
 openai.api_key = OPENAI_API_KEY
 
-# Start command
-def start(update, context):
-    update.message.reply_text("Assalam-o-Alaikum! Main aapka AI assistant hoon. Kuch puchhna ho to message karein.")
+# Start command handler
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text("Assalam-o-Alaikum! Main aapka AI assistant hoon. Kuch puchhna ho to message karein.")
 
 # Handle text messages
-def handle_message(update, context):
+async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_message = update.message.text
 
     try:
@@ -30,27 +32,21 @@ def handle_message(update, context):
             temperature=0.7
         )
         reply = response.choices[0].text.strip()
-        update.message.reply_text(reply)
+        await update.message.reply_text(reply)
     except Exception as e:
-        update.message.reply_text("Maaf kijiye, main abhi aapki request process nahi kar sakta.")
+        await update.message.reply_text("Maaf kijiye, main abhi aapki request process nahi kar sakta.")
 
 # Main function to start the bot
 def main():
-    # Initialize the Updater with Telegram Bot Token
-    updater = Updater(TELEGRAM_BOT_TOKEN, use_context=True)
+    # Initialize the bot application
+    application = ApplicationBuilder().token(TELEGRAM_BOT_TOKEN).build()
 
-    # Get the dispatcher to register handlers
-    dp = updater.dispatcher
+    # Add command and message handlers
+    application.add_handler(CommandHandler("start", start))
+    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, handle_message))
 
-    # Command handler for /start
-    dp.add_handler(CommandHandler("start", start))
-
-    # Message handler for text messages
-    dp.add_handler(MessageHandler(Filters.text & ~Filters.command, handle_message))
-
-    # Start the bot
-    updater.start_polling()
-    updater.idle()
+    # Start polling
+    application.run_polling()
 
 if __name__ == "__main__":
     main()
