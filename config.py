@@ -1,3 +1,3 @@
 # config.py
-bot_token = "your-telegram-bot-token"
-api_key = "your-openai-api-key"
+bot_token = "8120601970:AAEmaeSnSEcXevCXQZZitp0Quyv7giXMR4k"
+api_key = "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"
