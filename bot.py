@@ -21,14 +21,17 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def handle_message(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_message = update.message.text
     try:
-        # Generate response from OpenAI
-        response = openai.Completion.create(
-            model="text-davinci-003",
-            prompt=user_message,
+        # Generate response from OpenAI (using gpt-3.5-turbo or gpt-4)
+        response = openai.ChatCompletion.create(
+            model="gpt-3.5-turbo",  # or "gpt-4"
+            messages=[
+                {"role": "system", "content": "You are a helpful assistant."},
+                {"role": "user", "content": user_message}
+            ],
             max_tokens=150,
             temperature=0.7
         )
-        reply = response.choices[0].text.strip()
+        reply = response['choices'][0]['message']['content'].strip()
         await update.message.reply_text(reply)
         time.sleep(1)  # Add delay to prevent flooding
     except openai.error.AuthenticationError:
